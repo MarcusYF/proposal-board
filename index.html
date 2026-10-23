@@ -610,6 +610,7 @@ footer code { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-2)
     document.getElementById("content").style.display = "none";
     document.getElementById("foot-actions").hidden = true;
     document.getElementById("signin").hidden = false;
+    document.getElementById("asof").textContent = "Not connected on this device";
     var err = document.getElementById("signin-err"); err.hidden = !msg; err.textContent = msg || "";
   }
   function fetchRemote() {
