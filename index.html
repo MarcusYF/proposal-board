@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+</head>
+<body>
+<title>Proposal Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+<style>
+/* Layout: masthead, deadline rail on a real date scale, "needs your call" list, then a five-column pipeline (watching → decided). */
+:root {
+  --paper: #f4f7fb;
+  --surface: #ffffff;
+  --sunken: #eaf0f7;
+  --ink: #132033;
+  --ink-2: #4a5a71;
+  --ink-3: #7a889c;
+  --rule: #d9e1eb;
+  --accent: #2470b3;
+  --accent-soft: #e2eefa;
+  --s-watching: #66768d;
+  --s-preparing: #2470b3;
+  --s-pending: #a8670f;
+  --s-submitted: #5a4fcf;
+  --s-awarded: #2a7a4f;
+  --s-declined: #b23b3b;
+  --s-archived: #8a94a3;
+  --warn-bg: #fdf3e2;
+  --crit: #c2362f;
+  --crit-bg: #fbe9e7;
+  --shadow: 0 1px 2px rgba(19, 32, 51, .06), 0 2px 8px rgba(19, 32, 51, .04);
+  --f-display: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --f-body: "IBM Plex Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d141e; --surface: #142030; --sunken: #101a27; --ink: #e5edf6; --ink-2: #a3b3c7; --ink-3: #74859b;
+    --rule: #24324a; --accent: #6db3ea; --accent-soft: #16304a;
+    --s-watching: #93a3b8; --s-preparing: #6db3ea; --s-pending: #e0a548; --s-submitted: #a49cf5;
+    --s-awarded: #5cc28c; --s-declined: #ef7d76; --s-archived: #75849a;
+    --warn-bg: #2d2412; --crit: #ff8a80; --crit-bg: #3a1c1c;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d141e; --surface: #142030; --sunken: #101a27; --ink: #e5edf6; --ink-2: #a3b3c7; --ink-3: #74859b;
+  --rule: #24324a; --accent: #6db3ea; --accent-soft: #16304a;
+  --s-watching: #93a3b8; --s-preparing: #6db3ea; --s-pending: #e0a548; --s-submitted: #a49cf5;
+  --s-awarded: #5cc28c; --s-declined: #ef7d76; --s-archived: #75849a;
+  --warn-bg: #2d2412; --crit: #ff8a80; --crit-bg: #3a1c1c;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.45; }
+.wrap { max-width: 1480px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 48px; display: grid; gap: 22px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+.mono, .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+/* masthead */
+.mast { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; border-bottom: 1px solid var(--rule); padding-bottom: 16px; }
+.mast h1 { font-family: var(--f-display); font-weight: 600; font-size: 30px; letter-spacing: -.01em; }
+.mast .sub { color: var(--ink-2); margin-top: 2px; }
+.asof { font-family: var(--f-mono); font-size: 12px; color: var(--ink-3); text-align: right; display: grid; gap: 2px; }
+.stale { color: var(--s-pending); }
+
+/* pipeline summary */
+.pipe { display: grid; gap: 10px; }
+.pipe-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--sunken); }
+.pipe-bar span { display: block; height: 100%; }
+.pipe-legend { display: flex; flex-wrap: wrap; gap: 6px 20px; color: var(--ink-2); font-size: 13px; }
+.pipe-legend b { font-family: var(--f-mono); font-weight: 500; color: var(--ink); margin-right: 4px; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.pipe-legend .money { margin-left: auto; color: var(--ink); }
+
+/* section heads */
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.sec-head h2 { font-family: var(--f-display); font-weight: 600; font-size: 18px; }
+.sec-head .hint { color: var(--ink-3); font-size: 12px; }
+.eyebrow { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+
+/* deadline rail */
+.rail-box { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px 10px; overflow-x: auto; }
+.rail { position: relative; min-width: 640px; }
+.rail-axis { position: relative; height: 22px; border-bottom: 1px solid var(--rule); }
+.rail-tick { position: absolute; bottom: 0; transform: translateX(-50%); font-family: var(--f-mono); font-size: 11px; color: var(--ink-3); padding-bottom: 4px; white-space: nowrap; }
+.rail-tick::after { content: ""; position: absolute; left: 50%; bottom: -1px; width: 1px; height: 5px; background: var(--rule); }
+.rail-today { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px solid var(--accent); }
+.rail-today span { position: absolute; top: -2px; left: 4px; font-size: 11px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+.rail-lanes { position: relative; }
+.rail-ev { position: absolute; display: flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 12px; cursor: pointer; background: none; border: 0; padding: 0; text-align: left; }
+.rail-ev .pin { width: 9px; height: 9px; border-radius: 50%; flex: none; border: 2px solid var(--surface); box-shadow: 0 0 0 1px currentColor; }
+.rail-ev .pin.soft { background: transparent !important; }
+.rail-ev .lbl { color: var(--ink); }
+.rail-ev .lbl i { font-style: normal; color: var(--ink-3); font-family: var(--f-mono); font-size: 11px; margin-right: 4px; }
+.rail-ev:hover .lbl { text-decoration: underline; }
+.rail-list { display: none; list-style: none; margin: 0; padding: 0; }
+.rail-empty { color: var(--ink-3); font-size: 13px; padding: 8px 0; }
+
+/* needs your call */
+.calls { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.call { display: grid; gap: 4px; text-align: left; background: var(--warn-bg); border: 1px solid color-mix(in srgb, var(--s-pending) 35%, transparent); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+.call:hover { border-color: var(--s-pending); }
+.call .t { font-weight: 600; font-size: 13px; }
+.call .q { color: var(--ink-2); font-size: 13px; }
+
+/* toolbar */
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--rule); background: var(--surface); border-radius: 999px; padding: 4px 11px; font-size: 12.5px; cursor: pointer; color: var(--ink-2); }
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.search { flex: 1 1 200px; max-width: 300px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 6px 10px; font: inherit; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 13px; cursor: pointer; }
+
+/* board */
+.board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.col { min-width: 0; display: grid; gap: 10px; align-content: start; }
+.col-head { display: grid; gap: 2px; padding: 0 2px 8px; border-bottom: 2px solid var(--c); }
+.col-head .row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.col-head h3 { font-family: var(--f-display); font-weight: 600; font-size: 16px; }
+.col-head h3 small { font-family: var(--f-body); font-weight: 500; font-size: 12px; color: var(--ink-3); margin-left: 6px; }
+.col-head .count { font-family: var(--f-mono); font-size: 13px; color: var(--ink-2); }
+.col-head .what { font-size: 12px; color: var(--ink-3); }
+.col-empty { color: var(--ink-3); font-size: 12.5px; padding: 8px 2px; }
+.subhead { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 6px 2px 0; }
+
+.card { display: grid; gap: 7px; text-align: left; width: 100%; background: var(--surface); border: 1px solid var(--rule); border-radius: 9px; padding: 11px 12px 12px; box-shadow: var(--shadow); cursor: pointer; }
+.card:hover { border-color: color-mix(in srgb, var(--c) 55%, var(--rule)); }
+.card .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11.5px; color: var(--ink-3); }
+.kind { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; color: var(--c); }
+.card h4 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 15px; line-height: 1.25; color: var(--ink); text-wrap: pretty; }
+.card .prog { font-size: 12px; color: var(--ink-2); }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 12px; color: var(--ink-2); }
+.due { font-family: var(--f-mono); font-size: 11.5px; padding: 1px 6px; border-radius: 4px; background: var(--sunken); color: var(--ink-2); white-space: nowrap; }
+.due.warn { background: var(--warn-bg); color: var(--s-pending); }
+.due.crit { background: var(--crit-bg); color: var(--crit); font-weight: 500; }
+.due.past { background: transparent; color: var(--ink-3); padding-left: 0; }
+.amt { font-family: var(--f-mono); font-size: 11.5px; }
+.next { font-size: 12.5px; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.next b { font-weight: 600; color: var(--ink-3); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; margin-right: 4px; }
+.ask { font-size: 12.5px; color: var(--ink); background: var(--warn-bg); border-radius: 6px; padding: 6px 8px; border-left: 3px solid var(--s-pending); }
+.outcome { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; color: var(--surface); background: var(--c); }
+.card.archived { opacity: .72; box-shadow: none; }
+
+/* drawer */
+.scrim { position: fixed; inset: 0; background: rgba(10, 18, 30, .35); z-index: 10; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(520px, 100%); background: var(--surface); border-left: 1px solid var(--rule); z-index: 11; overflow-y: auto; padding: calc(env(safe-area-inset-top, 0px) + 20px) 22px calc(env(safe-area-inset-bottom, 0px) + 28px); display: grid; gap: 16px; align-content: start; }
+.drawer .x { justify-self: end; border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; padding: 3px 10px; cursor: pointer; color: var(--ink-2); }
+.drawer h3 { font-family: var(--f-display); font-weight: 600; font-size: 21px; line-height: 1.25; }
+.status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); }
+dl.facts { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 7px 14px; margin: 0; font-size: 13px; }
+dl.facts dt { color: var(--ink-3); font-size: 12px; }
+dl.facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.path { display: flex; gap: 6px; align-items: center; }
+.path code { font-family: var(--f-mono); font-size: 12px; background: var(--sunken); padding: 2px 6px; border-radius: 4px; overflow-wrap: anywhere; }
+.copy { border: 1px solid var(--rule); background: var(--surface); border-radius: 5px; font-size: 11.5px; padding: 1px 7px; cursor: pointer; color: var(--ink-2); flex: none; }
+.drawer a { color: var(--accent); }
+.hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; border-left: 1px solid var(--rule); }
+.hist li { padding-left: 12px; position: relative; font-size: 12.5px; }
+.hist li::before { content: ""; position: absolute; left: -4px; top: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--c, var(--ink-3)); }
+.hist .when { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-3); }
+
+footer { border-top: 1px solid var(--rule); padding-top: 14px; color: var(--ink-3); font-size: 12.5px; display: grid; gap: 4px; }
+footer code { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-2); }
+
+@media (max-width: 1020px) { .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) {
+  .wrap { padding-inline: 16px; }
+  .board { grid-template-columns: minmax(0, 1fr); }
+  .rail { display: none; }
+  .rail-list { display: grid; gap: 6px; }
+  .rail-list li { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 8px; font-size: 13px; }
+  .pipe-legend .money { margin-left: 0; }
+  dl.facts { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  dl.facts dd { margin-bottom: 6px; }
+}
+@media (prefers-reduced-motion: no-preference) { .card, .chip, .call { transition: border-color .15s, background-color .15s; } }
+/* app: sign-in, live status, workspace activity */
+.signin { max-width: 640px; display: grid; gap: 12px; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px; }
+.signin h2 { font-family: var(--f-display); font-weight: 600; font-size: 20px; }
+.signin p, .signin li { color: var(--ink-2); font-size: 13.5px; }
+.signin ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.signin a, footer a { color: var(--accent); }
+.signin form { display: flex; flex-wrap: wrap; gap: 8px; }
+.signin input { flex: 1 1 260px; min-width: 0; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); border-radius: 8px; padding: 8px 10px; font: inherit; font-family: var(--f-mono); font-size: 13px; }
+.btn { border: 1px solid var(--rule); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+.btn.primary { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.btn.link { border: 0; background: none; padding: 0; color: var(--accent); font-size: 12.5px; text-decoration: underline; }
+.err { color: var(--crit); font-size: 13px; }
+.live { color: var(--s-awarded); }
+.act { font-family: var(--f-mono); font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.act.fresh { color: var(--s-pending); }
+.act.fresh::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--s-pending); margin-right: 5px; vertical-align: 1px; }
+.foot-actions { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+</style>
+
+<script id="registry" type="application/json">null</script>
+<script id="remote" type="application/json">{"repo": "MarcusYF/proposal-board-data", "path": "board.json"}</script>
+
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <h1>Proposal Board</h1>
+      <div class="sub" id="sub">Grants, fellowships and proposal opportunities</div>
+    </div>
+    <div class="asof" id="asof"></div>
+  </header>
+
+  <section class="signin" id="signin" aria-labelledby="signin-h" hidden>
+    <h2 id="signin-h">Connect this device</h2>
+    <p>This board reads its data from a private GitHub repository. Paste a read-only token once on each device; it is kept in this browser only and sent only to GitHub.</p>
+    <ol>
+      <li>Open <a id="tok-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → New fine-grained token</a>.</li>
+      <li>Repository access: <b>Only select repositories</b> → <code id="tok-repo"></code>. Permissions: <b>Contents → Read-only</b>. Pick an expiry you are comfortable with.</li>
+      <li>Generate the token and paste it here.</li>
+    </ol>
+    <form id="signin-form" autocomplete="off">
+      <input id="token" type="password" placeholder="github_pat_…" aria-label="GitHub fine-grained token" spellcheck="false">
+      <button class="btn primary" type="submit">Connect</button>
+    </form>
+    <p class="err" id="signin-err" hidden></p>
+  </section>
+
+  <div id="content" style="display:grid;gap:22px">
+  <section class="pipe" aria-label="Pipeline summary">
+    <div class="pipe-bar" id="pipe-bar"></div>
+    <div class="pipe-legend" id="pipe-legend"></div>
+  </section>
+
+  <section aria-labelledby="rail-h">
+    <div class="sec-head"><h2 id="rail-h">Next 60 days</h2><span class="hint">Sponsor deadlines, internal targets and stage dates · filled pin = sponsor deadline</span></div>
+    <div class="rail-box"><div class="rail" id="rail"></div><ul class="rail-list" id="rail-list"></ul></div>
+  </section>
+
+  <section aria-labelledby="calls-h" id="calls-sec">
+    <div class="sec-head"><h2 id="calls-h">Needs your call</h2><span class="hint">Status the agents could not establish from the files</span></div>
+    <div class="calls" id="calls"></div>
+  </section>
+
+  <section aria-labelledby="board-h" style="display:grid;gap:14px">
+    <div class="sec-head"><h2 id="board-h">Pipeline</h2></div>
+    <div class="toolbar">
+      <div class="chips" id="chips" role="group" aria-label="Filter by kind"></div>
+      <input class="search" id="search" type="search" placeholder="Search title, sponsor, people" aria-label="Search">
+      <label class="toggle"><input type="checkbox" id="archived"> Show lapsed and withdrawn</label>
+    </div>
+    <div class="board" id="board"></div>
+  </section>
+  </div>
+
+  <footer>
+    <div id="foot-src"></div>
+    <div>To change anything, tell Claude or Codex in chat (for example “mark the NSF proposal as submitted”). They update the registry with <code>portfolio/tools/portfolio.py set</code> and run <code>portfolio.py publish</code>, which refreshes this board everywhere.</div>
+    <div class="foot-actions" id="foot-actions" hidden>
+      <button class="btn" type="button" id="refresh">Refresh now</button>
+      <button class="btn link" type="button" id="signout">Forget the token on this device</button>
+    </div>
+  </footer>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="d-title" hidden></aside>
+
+<script>
+(function () {
+  "use strict";
+  function readJSON(id) { try { var t = document.getElementById(id).textContent.trim(); return t && t !== "null" ? JSON.parse(t) : null; } catch (e) { return null; } }
+  var EMBED = readJSON("registry"), REMOTE = readJSON("remote");
+  var DATA = { items: [] }, ITEMS = [], ACT = {}, META = {};
+  function setBundle(b) {
+    if (b && b.registry) { DATA = b.registry; ACT = b.activity || {}; META = b.meta || {}; }
+    else { DATA = b || { items: [] }; ACT = {}; META = {}; }
+    ITEMS = DATA.items || [];
+  }
+  var DAY = 86400000;
+  var now = new Date();
+  var TODAY = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  var STATUS = {
+    watching: { col: "watching", label: "Watching", c: "--s-watching" },
+    preparing: { col: "preparing", label: "Preparing", c: "--s-preparing" },
+    pending: { col: "preparing", label: "On hold", c: "--s-pending" },
+    submitted: { col: "submitted", label: "Submitted", c: "--s-submitted" },
+    awarded: { col: "decided", label: "Awarded", c: "--s-awarded" },
+    declined: { col: "decided", label: "Declined", c: "--s-declined" },
+    withdrawn: { col: "archived", label: "Withdrawn", c: "--s-archived" },
+    lapsed: { col: "archived", label: "Lapsed", c: "--s-archived" }
+  };
+  var COLS = [
+    { key: "watching", zh: "观望中", en: "Watching", c: "--s-watching", what: "Tracked calls and ideas, no commitment yet" },
+    { key: "preparing", zh: "准备中", en: "Preparing", c: "--s-preparing", what: "Committed and drafting toward a deadline" },
+    { key: "submitted", zh: "已提交", en: "Submitted", c: "--s-submitted", what: "In review, awaiting a decision" },
+    { key: "decided", zh: "出结果", en: "Decided", c: "--s-awarded", what: "Awarded or declined" }
+  ];
+  var KIND = { external: "External", internal: "UNC internal", gift: "Industry gift", fellowship: "Fellowship", workshop: "Workshop", idea: "Idea" };
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  function store(key, val) { try { if (val === undefined) return localStorage.getItem(key); localStorage.setItem(key, val); } catch (e) { return null; } }
+  var state = { kind: store("pb.kind") || "all", q: "", archived: store("pb.archived") === "1" };
+
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  function cvar(name) { return "var(" + name + ")"; }
+  function parse(d) { if (!d || d.length !== 10) return null; var p = d.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function daysTo(d) { var t = parse(d); return t ? Math.round((t - TODAY) / DAY) : null; }
+  function fmt(d) {
+    if (!d) return "—";
+    var p = d.split("-");
+    if (p.length === 2) return MONTHS[+p[1] - 1] + " " + p[0];
+    return MONTHS[+p[1] - 1] + " " + (+p[2]) + (+p[0] !== TODAY.getFullYear() ? ", " + p[0] : "");
+  }
+  function money(n) { return n >= 1e6 ? "$" + (n / 1e6).toFixed(2).replace(/0$/, "") + "M" : "$" + Math.round(n / 1000) + "k"; }
+  function colOf(it) { return STATUS[it.status].col; }
+  var WATCH_GROUPS = ["Federal and foundations", "Industry awards", "Compute and credits", "North Carolina", "Ideas"];
+  function watchGroup(it) {
+    var tags = it.tags || [];
+    if (it.kind === "idea") return "Ideas";
+    if (tags.indexOf("NC") >= 0) return "North Carolina";
+    if (tags.indexOf("compute") >= 0) return "Compute and credits";
+    if (it.kind === "gift" || tags.indexOf("industry") >= 0) return "Industry awards";
+    return "Federal and foundations";
+  }
+
+  function dueBadge(it) {
+    if (!it.deadline) return null;
+    var d = daysTo(it.deadline), col = colOf(it);
+    var live = col === "watching" || col === "preparing";
+    var b = el("span", "due");
+    if (d === null || !live) { b.className = "due past"; b.textContent = (col === "submitted" || col === "decided" ? "Deadline " : "") + fmt(it.deadline); return b; }
+    if (d < 0) { b.className = "due past"; b.textContent = "Deadline passed " + fmt(it.deadline); return b; }
+    b.textContent = fmt(it.deadline) + " · " + (d === 0 ? "today" : "D-" + d);
+    if (d <= 3) b.className = "due crit"; else if (d <= 14) b.className = "due warn";
+    return b;
+  }
+
+  function visible(it) {
+    if (state.kind !== "all" && it.kind !== state.kind) return false;
+    if (state.q) {
+      var hay = [it.title, it.program, it.sponsor, it.lead, (it.team || []).join(" "), (it.tags || []).join(" "), it.id].join(" ").toLowerCase();
+      if (hay.indexOf(state.q) < 0) return false;
+    }
+    return true;
+  }
+
+  function sortKey(it) {
+    var col = colOf(it);
+    if (col === "submitted") return -(Date.parse(it.submitted_on || it.deadline || "2000-01-01") || 0);
+    if (col === "decided" || col === "archived") return -(Date.parse(it.decided_on || it.deadline || it.submitted_on || "2000-01-01") || 0);
+    var d = daysTo(it.deadline);
+    if (d === null) return 1e6;
+    return d >= 0 ? d : 2e6 - d;
+  }
+
+  function card(it) {
+    var s = STATUS[it.status];
+    var b = el("div", "card" + (s.col === "archived" ? " archived" : ""));
+    b.setAttribute("role", "button"); b.tabIndex = 0;
+    b.setAttribute("aria-label", it.title + ", " + s.label);
+    b.style.setProperty("--c", cvar(s.c));
+    b.addEventListener("click", function () { openDrawer(it); });
+    b.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDrawer(it); } });
+    var top = el("div", "top");
+    top.appendChild(el("span", "kind", KIND[it.kind] || it.kind));
+    if (s.col === "decided" || s.col === "archived" || it.status === "pending") top.appendChild(el("span", "outcome", s.label));
+    else top.appendChild(el("span", null, it.sponsor || ""));
+    b.appendChild(top);
+    b.appendChild(el("h4", null, it.title));
+    b.appendChild(el("div", "prog", it.program));
+    var meta = el("div", "meta");
+    var due = dueBadge(it); if (due) meta.appendChild(due);
+    if (it.amount_usd) meta.appendChild(el("span", "amt", money(it.amount_usd)));
+    if (it.role && it.kind !== "idea") meta.appendChild(el("span", null, it.role + (it.lead && it.lead !== (DATA.owner || "").split(" (")[0] ? " · lead " + it.lead : "")));
+    var act = ACT[it.id];
+    if (act && act.last_change) {
+      var st = el("span", "act" + (act.newer ? " fresh" : ""), "files " + fmt(act.last_change.slice(0, 10)));
+      st.title = act.newer ? "Workspace files changed after this entry was last updated; ask an agent to refresh it." : "Latest change in the workspace: " + act.file;
+      meta.appendChild(st);
+    }
+    if (meta.childNodes.length) b.appendChild(meta);
+    if (it.needs_confirmation) b.appendChild(el("div", "ask", it.needs_confirmation));
+    else if (s.col === "decided" || s.col === "archived") { if (it.outcome_note) b.appendChild(el("div", "next", it.outcome_note)); }
+    else if (it.next_action) { var n = el("div", "next"); n.appendChild(el("b", null, "Next")); n.appendChild(document.createTextNode(it.next_action)); b.appendChild(n); }
+    return b;
+  }
+
+  function renderBoard() {
+    var board = document.getElementById("board");
+    board.textContent = "";
+    COLS.forEach(function (c) {
+      var col = el("div", "col");
+      col.style.setProperty("--c", cvar(c.c));
+      var items = ITEMS.filter(function (it) { return colOf(it) === c.key && visible(it); }).sort(function (a, b) { return sortKey(a) - sortKey(b); });
+      var arch = c.key === "decided" && state.archived ? ITEMS.filter(function (it) { return colOf(it) === "archived" && visible(it); }) : [];
+      var head = el("div", "col-head");
+      var row = el("div", "row");
+      var h = el("h3", null, c.zh); h.appendChild(el("small", null, c.en));
+      row.appendChild(h); row.appendChild(el("span", "count", String(items.length)));
+      head.appendChild(row); head.appendChild(el("div", "what", c.what));
+      col.appendChild(head);
+      if (c.key === "watching") {
+        WATCH_GROUPS.forEach(function (g) {
+          var group = items.filter(function (it) { return watchGroup(it) === g; });
+          if (!group.length) return;
+          col.appendChild(el("div", "subhead", g + " · " + group.length));
+          group.forEach(function (it) { col.appendChild(card(it)); });
+        });
+      } else items.forEach(function (it) { col.appendChild(card(it)); });
+      if (!items.length && !arch.length) col.appendChild(el("div", "col-empty", "Nothing here" + (state.kind !== "all" || state.q ? " for this filter." : " yet.")));
+      if (arch.length) { col.appendChild(el("div", "subhead", "Lapsed / withdrawn")); arch.forEach(function (it) { col.appendChild(card(it)); }); }
+      board.appendChild(col);
+    });
+  }
+
+  function renderChips() {
+    var box = document.getElementById("chips");
+    box.textContent = "";
+    var kinds = ["all"].concat(Object.keys(KIND).filter(function (k) { return ITEMS.some(function (it) { return it.kind === k; }); }));
+    kinds.forEach(function (k) {
+      var b = el("button", "chip", k === "all" ? "All" : KIND[k]);
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(state.kind === k));
+      b.addEventListener("click", function () { state.kind = k; store("pb.kind", k); renderChips(); renderBoard(); });
+      box.appendChild(b);
+    });
+  }
+
+  function renderSummary() {
+    var counts = {}, total = 0, review = 0, nReview = 0;
+    ITEMS.forEach(function (it) {
+      var c = colOf(it); counts[c] = (counts[c] || 0) + 1;
+      if (c !== "archived") total++;
+      if (it.status === "submitted" && it.amount_usd) { review += it.amount_usd; nReview++; }
+    });
+    var bar = document.getElementById("pipe-bar"), leg = document.getElementById("pipe-legend");
+    bar.textContent = ""; leg.textContent = "";
+    COLS.forEach(function (c) {
+      var n = counts[c.key] || 0;
+      if (n) { var s = el("span"); s.style.width = (100 * n / total) + "%"; s.style.background = cvar(c.c); s.title = c.en + ": " + n; bar.appendChild(s); }
+      var g = el("span"); var d = el("span", "dot"); d.style.background = cvar(c.c); g.appendChild(d);
+      g.appendChild(el("b", null, String(n))); g.appendChild(document.createTextNode(c.zh + " " + c.en)); leg.appendChild(g);
+    });
+    if (review) { var m = el("span", "money"); m.appendChild(el("b", null, money(review))); m.appendChild(document.createTextNode("requested in " + nReview + " submitted proposal" + (nReview > 1 ? "s" : "") + " under review")); leg.appendChild(m); }
+  }
+
+  function events() {
+    var out = [];
+    ITEMS.forEach(function (it) {
+      var c = colOf(it);
+      if (c === "decided" || c === "archived") return;
+      var list = [];
+      if (it.deadline) list.push({ date: it.deadline, label: "deadline", hard: true });
+      if (it.internal_deadline) list.push({ date: it.internal_deadline, label: "internal target", hard: false });
+      (it.milestones || []).forEach(function (m) { if (m.date !== it.deadline) list.push({ date: m.date, label: m.label, hard: false }); });
+      list.forEach(function (e) { var d = daysTo(e.date); if (d !== null && d >= 0 && d <= 60) out.push({ d: d, date: e.date, label: e.label, hard: e.hard, it: it }); });
+    });
+    return out.sort(function (a, b) { return a.d - b.d; });
+  }
+
+  function shortTitle(it) {
+    var t = it.title.split(/[:(]/)[0].trim();
+    return t.length > 34 ? t.slice(0, 32) + "…" : t;
+  }
+
+  function renderRail() {
+    var rail = document.getElementById("rail"), list = document.getElementById("rail-list");
+    rail.textContent = ""; list.textContent = "";
+    var evs = events();
+    if (!evs.length) { rail.appendChild(el("div", "rail-empty", "No dated items in the next 60 days.")); return; }
+    var W = Math.max(rail.clientWidth, 640), PADR = 150;
+    function x(d) { return 8 + (d / 60) * (W - 8 - PADR); }
+    var axis = el("div", "rail-axis");
+    for (var d = 7; d <= 60; d += 7) {
+      var t = new Date(TODAY.getTime() + d * DAY);
+      var tick = el("div", "rail-tick", MONTHS[t.getMonth()] + " " + t.getDate());
+      tick.style.left = x(d) + "px"; axis.appendChild(tick);
+    }
+    rail.appendChild(axis);
+    var lanes = el("div", "rail-lanes"), ends = [], LANE = 24;
+    evs.forEach(function (e) {
+      var left = x(e.d), text = shortTitle(e.it), width = 30 + (text.length + e.label.length + 8) * 6.4;
+      var lane = 0; while (ends[lane] !== undefined && ends[lane] > left - 6) lane++;
+      ends[lane] = left + width;
+      var b = el("button", "rail-ev"); b.type = "button";
+      b.style.left = (left - 4.5) + "px"; b.style.top = (8 + lane * LANE) + "px";
+      var col = cvar(STATUS[e.it.status].c);
+      var pin = el("span", "pin" + (e.hard ? "" : " soft")); pin.style.background = col; pin.style.color = col;
+      var lbl = el("span", "lbl"); lbl.appendChild(el("i", null, "D-" + e.d)); lbl.appendChild(document.createTextNode(text + " · " + e.label));
+      b.appendChild(pin); b.appendChild(lbl);
+      b.title = e.it.title + " — " + e.label + " " + fmt(e.date);
+      b.addEventListener("click", function () { openDrawer(e.it); });
+      lanes.appendChild(b);
+      var li = el("li"); li.appendChild(el("span", "mono", fmt(e.date) + " · D-" + e.d));
+      var a = el("span"); a.textContent = text + " · " + e.label; li.appendChild(a); list.appendChild(li);
+    });
+    lanes.style.height = (16 + ends.length * LANE) + "px";
+    rail.appendChild(lanes);
+    var today = el("div", "rail-today"); today.style.left = x(0) + "px"; today.appendChild(el("span", null, "Today")); rail.appendChild(today);
+  }
+
+  function renderCalls() {
+    var box = document.getElementById("calls"), need = ITEMS.filter(function (it) { return it.needs_confirmation; });
+    box.textContent = "";
+    document.getElementById("calls-sec").hidden = !need.length;
+    need.forEach(function (it) {
+      var b = el("button", "call"); b.type = "button";
+      b.appendChild(el("span", "t", shortTitle(it) + " · " + (it.sponsor || KIND[it.kind])));
+      b.appendChild(el("span", "q", it.needs_confirmation));
+      b.addEventListener("click", function () { openDrawer(it); });
+      box.appendChild(b);
+    });
+  }
+
+  var lastFocus = null;
+  function fact(dl, k, v) { if (v == null || v === "" || (Array.isArray(v) && !v.length)) return; dl.appendChild(el("dt", null, k)); var dd = el("dd"); if (v instanceof Node) dd.appendChild(v); else dd.textContent = Array.isArray(v) ? v.join(", ") : v; dl.appendChild(dd); }
+  function copyBtn(text) {
+    var b = el("button", "copy", "Copy"); b.type = "button";
+    b.addEventListener("click", function () {
+      var done = function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 1400); };
+      try { navigator.clipboard.writeText(text).then(done, function () { selectNext(b); }); } catch (e) { selectNext(b); }
+    });
+    return b;
+  }
+  function selectNext(b) { var code = b.previousSibling; var r = document.createRange(); r.selectNodeContents(code); var s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Press ⌘C"; }
+  function pathNode(p) { var w = el("span", "path"); w.appendChild(el("code", null, p)); w.appendChild(copyBtn(p)); return w; }
+
+  function openDrawer(it) {
+    lastFocus = document.activeElement;
+    var s = STATUS[it.status], dr = document.getElementById("drawer");
+    dr.textContent = ""; dr.style.setProperty("--c", cvar(s.c));
+    var x = el("button", "x", "Close"); x.type = "button"; x.addEventListener("click", closeDrawer); dr.appendChild(x);
+    var head = el("div"); head.style.display = "grid"; head.style.gap = "8px";
+    var pill = el("span", "status-pill", s.label + (it.stage ? " · " + it.stage : "")); head.appendChild(pill);
+    var h = el("h3", null, it.title); h.id = "d-title"; head.appendChild(h);
+    head.appendChild(el("div", "prog", it.program)); dr.appendChild(head);
+    if (it.needs_confirmation) dr.appendChild(el("div", "ask", "To confirm: " + it.needs_confirmation));
+    var dl = el("dl", "facts");
+    fact(dl, "Kind", KIND[it.kind]);
+    fact(dl, "Sponsor", it.sponsor);
+    fact(dl, "Role", it.role);
+    fact(dl, "Lead", it.lead);
+    fact(dl, "Team", it.team);
+    fact(dl, "Amount", it.amount);
+    fact(dl, "Deadline", it.deadline ? fmt(it.deadline) + (it.deadline_note ? " — " + it.deadline_note : "") : it.deadline_note);
+    fact(dl, "Internal target", it.internal_deadline && fmt(it.internal_deadline));
+    (it.milestones || []).forEach(function (m) { fact(dl, m.label, fmt(m.date)); });
+    fact(dl, "Submitted", it.submitted_on && fmt(it.submitted_on));
+    fact(dl, "Decision", it.decision_expected);
+    fact(dl, "Outcome", it.outcome_note);
+    fact(dl, "Gate", it.gate);
+    fact(dl, "Next action", it.next_action && it.next_action + (it.next_owner ? " (" + it.next_owner + ")" : ""));
+    if (it.ids && Object.keys(it.ids).length) fact(dl, "IDs", Object.keys(it.ids).map(function (k) { return k + " " + it.ids[k]; }).join(" · "));
+    if (it.workspace) fact(dl, "Workspace", pathNode(it.workspace));
+    if (ACT[it.id] && ACT[it.id].last_change) fact(dl, "Workspace activity", fmt(ACT[it.id].last_change.slice(0, 10)) + " · " + ACT[it.id].file + (ACT[it.id].newer ? " (newer than this entry)" : ""));
+    if (it.tracker) fact(dl, "Tracker", pathNode(it.tracker));
+    if (it.url) { var a = el("a", null, it.url.replace(/^https?:\/\//, "").slice(0, 60)); a.href = it.url; a.target = "_blank"; a.rel = "noopener"; fact(dl, "Official page", a); }
+    if (it.overlap && it.overlap.length) fact(dl, "Overlap check", it.overlap.map(function (id) { var o = ITEMS.filter(function (x) { return x.id === id; })[0]; return o ? shortTitle(o) : id; }));
+    fact(dl, "Registry id", pathNode(it.id));
+    fact(dl, "Last change", fmt(it.updated) + " by " + it.updated_by);
+    dr.appendChild(dl);
+    if (it.history && it.history.length) {
+      dr.appendChild(el("div", "eyebrow", "History"));
+      var ul = el("ul", "hist");
+      it.history.slice().reverse().forEach(function (hst) {
+        var li = el("li"); li.style.setProperty("--c", cvar((STATUS[hst.status] || STATUS.watching).c));
+        li.appendChild(el("div", "when", fmt(hst.date) + " · " + hst.by + " · " + hst.status));
+        li.appendChild(el("div", null, hst.note)); ul.appendChild(li);
+      });
+      dr.appendChild(ul);
+    }
+    document.getElementById("scrim").hidden = false; dr.hidden = false; x.focus();
+  }
+  function closeDrawer() { document.getElementById("drawer").hidden = true; document.getElementById("scrim").hidden = true; if (lastFocus) lastFocus.focus(); }
+  document.getElementById("scrim").addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !document.getElementById("drawer").hidden) closeDrawer(); });
+
+  function renderMeta() {
+    var asof = document.getElementById("asof"), age = daysTo(DATA.updated);
+    asof.textContent = "";
+    if (DATA.owner) document.getElementById("sub").textContent = DATA.owner + " · grants, fellowships and proposal opportunities";
+    if (REMOTE && lastFetch) asof.appendChild(el("span", "live", "Live from GitHub · checked " + lastFetch.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })));
+    else if (META.generated_at) asof.appendChild(el("span", null, "Snapshot generated " + META.generated_at.slice(0, 16).replace("T", " ") + " UTC"));
+    asof.appendChild(el("span", null, "Registry rev " + DATA.revision + " · updated " + fmt(DATA.updated) + " by " + DATA.updated_by));
+    asof.appendChild(el("span", null, "Countdowns use today's date: " + fmt(TODAY.getFullYear() + "-" + ("0" + (TODAY.getMonth() + 1)).slice(-2) + "-" + ("0" + TODAY.getDate()).slice(-2))));
+    if (age !== null && age < -7) asof.appendChild(el("span", "stale", "Statuses are " + (-age) + " days old; ask an agent to refresh"));
+    var tr = META.trackers || {}, trText = Object.keys(tr).map(function (k) { return k + " " + fmt(String(tr[k]).slice(0, 10)); }).join(", ");
+    document.getElementById("foot-src").textContent = "Generated from portfolio/registry.json (" + ITEMS.length + " items, revision " + DATA.revision + "). Opportunity facts come from the Codex weekly scan trackers" + (trText ? " (last changed: " + trText + ")" : "") + "; proposal details live in each workspace.";
+  }
+
+  var search = document.getElementById("search");
+  search.addEventListener("input", function () { state.q = search.value.trim().toLowerCase(); renderBoard(); });
+  var arch = document.getElementById("archived");
+  arch.checked = state.archived;
+  arch.addEventListener("change", function () { state.archived = arch.checked; store("pb.archived", arch.checked ? "1" : "0"); renderBoard(); });
+
+  function renderAll() { renderMeta(); renderSummary(); renderCalls(); renderChips(); renderBoard(); renderRail(); }
+  var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(renderRail, 120); });
+
+  // Remote mode: data comes from a private GitHub repository through the REST API.
+  var lastFetch = null, timer = null, TOKEN_KEY = REMOTE ? "pb.gh." + REMOTE.repo : "";
+  function token() { return store(TOKEN_KEY) || ""; }
+  function forgetToken() { try { localStorage.removeItem(TOKEN_KEY); } catch (e) {} }
+  function showContent() { document.getElementById("signin").hidden = true; document.getElementById("content").style.display = "grid"; renderAll(); }
+  function showSignin(msg) {
+    document.getElementById("content").style.display = "none";
+    document.getElementById("foot-actions").hidden = true;
+    document.getElementById("signin").hidden = false;
+    var err = document.getElementById("signin-err"); err.hidden = !msg; err.textContent = msg || "";
+  }
+  function fetchRemote() {
+    if (!token()) { showSignin(); return; }
+    var url = "https://api.github.com/repos/" + REMOTE.repo + "/contents/" + REMOTE.path + (REMOTE.ref ? "?ref=" + encodeURIComponent(REMOTE.ref) : "");
+    fetch(url, { cache: "no-cache", headers: { "Authorization": "Bearer " + token(), "Accept": "application/vnd.github.raw+json", "X-GitHub-Api-Version": "2022-11-28" } })
+      .then(function (r) {
+        if (r.status === 401) throw new Error("auth");
+        if (r.status === 403 || r.status === 404) throw new Error("access");
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (b) { setBundle(b); lastFetch = new Date(); document.getElementById("foot-actions").hidden = false; showContent(); })
+      .catch(function (e) {
+        if (e.message === "auth") showSignin("GitHub did not accept this token. Create a new one and paste it again.");
+        else if (e.message === "access") showSignin("This token cannot read " + REMOTE.repo + ". Give it read-only Contents access to that repository.");
+        else if (ITEMS.length) { renderMeta(); document.getElementById("asof").appendChild(el("span", "stale", "Refresh failed (" + e.message + "); showing the last data")); }
+        else showSignin("Could not reach GitHub (" + e.message + "). Check the connection and try again.");
+      });
+  }
+  if (EMBED) { setBundle(EMBED); showContent(); }
+  else if (REMOTE) {
+    document.getElementById("content").style.display = "none";
+    document.getElementById("asof").textContent = "Loading…";
+    document.getElementById("tok-repo").textContent = REMOTE.repo;
+    document.getElementById("signin-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var v = document.getElementById("token").value.trim();
+      if (!v) return;
+      store(TOKEN_KEY, v); document.getElementById("token").value = ""; fetchRemote();
+    });
+    document.getElementById("refresh").addEventListener("click", fetchRemote);
+    document.getElementById("signout").addEventListener("click", function () { forgetToken(); lastFetch = null; showSignin(); });
+    document.addEventListener("visibilitychange", function () { if (!document.hidden && token() && (!lastFetch || Date.now() - lastFetch > 60000)) fetchRemote(); });
+    timer = setInterval(function () { if (!document.hidden && token()) fetchRemote(); }, 5 * 60 * 1000);
+    fetchRemote();
+  }
+})();
+</script>
+
+</body>
+</html>
