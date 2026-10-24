@@ -218,7 +218,7 @@ footer code { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-2)
     <p>This board reads its data from a private GitHub repository. Paste a read-only token once on each device; it is kept in this browser only and sent only to GitHub.</p>
     <ol>
       <li>Open <a id="tok-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → New fine-grained token</a>. Resource owner: your account.</li>
-      <li>Repository access: choose <b>Only select repositories</b> (not the default “Public repositories”) and select <code id="tok-repo"></code>.</li>
+      <li>Repository access: choose <b>Only select repositories</b> (not the default “Public repositories”) and select <code id="tok-repo"></code> — the one whose name ends in <b>-data</b>. The similarly named repository without “-data” holds only this page and has no data.</li>
       <li>Permissions → Repository permissions → <b>Contents → Read-only</b> (Metadata turns read-only by itself). Pick an expiry, generate, and paste the token here.</li>
       <li>Already made a token? Edit it in <a href="https://github.com/settings/personal-access-tokens" target="_blank" rel="noopener">GitHub → Fine-grained tokens</a>; the token value stays the same.</li>
     </ol>
