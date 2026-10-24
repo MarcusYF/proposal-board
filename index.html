@@ -217,9 +217,10 @@ footer code { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-2)
     <h2 id="signin-h">Connect this device</h2>
     <p>This board reads its data from a private GitHub repository. Paste a read-only token once on each device; it is kept in this browser only and sent only to GitHub.</p>
     <ol>
-      <li>Open <a id="tok-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → New fine-grained token</a>.</li>
-      <li>Repository access: <b>Only select repositories</b> → <code id="tok-repo"></code>. Permissions: <b>Contents → Read-only</b>. Pick an expiry you are comfortable with.</li>
-      <li>Generate the token and paste it here.</li>
+      <li>Open <a id="tok-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → New fine-grained token</a>. Resource owner: your account.</li>
+      <li>Repository access: choose <b>Only select repositories</b> (not the default “Public repositories”) and select <code id="tok-repo"></code>.</li>
+      <li>Permissions → Repository permissions → <b>Contents → Read-only</b> (Metadata turns read-only by itself). Pick an expiry, generate, and paste the token here.</li>
+      <li>Already made a token? Edit it in <a href="https://github.com/settings/personal-access-tokens" target="_blank" rel="noopener">GitHub → Fine-grained tokens</a>; the token value stays the same.</li>
     </ol>
     <form id="signin-form" autocomplete="off">
       <input id="token" type="password" placeholder="github_pat_…" aria-label="GitHub fine-grained token" spellcheck="false">
@@ -618,18 +619,29 @@ footer code { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-2)
     var url = "https://api.github.com/repos/" + REMOTE.repo + "/contents/" + REMOTE.path + (REMOTE.ref ? "?ref=" + encodeURIComponent(REMOTE.ref) : "");
     fetch(url, { cache: "no-cache", headers: { "Authorization": "Bearer " + token(), "Accept": "application/vnd.github.raw+json", "X-GitHub-Api-Version": "2022-11-28" } })
       .then(function (r) {
-        if (r.status === 401) throw new Error("auth");
-        if (r.status === 403 || r.status === 404) throw new Error("access");
-        if (!r.ok) throw new Error("HTTP " + r.status);
-        return r.json();
+        if (r.ok) return r.json();
+        return r.json().catch(function () { return {}; }).then(function (j) {
+          var e = new Error(r.status === 401 ? "auth" : (r.status === 403 || r.status === 404) ? "access" : "HTTP " + r.status);
+          e.status = r.status; e.gh = j.message || ""; throw e;
+        });
       })
       .then(function (b) { setBundle(b); lastFetch = new Date(); document.getElementById("foot-actions").hidden = false; showContent(); })
       .catch(function (e) {
         if (e.message === "auth") showSignin("GitHub did not accept this token. Create a new one and paste it again.");
-        else if (e.message === "access") showSignin("This token cannot read " + REMOTE.repo + ". Give it read-only Contents access to that repository.");
+        else if (e.message === "access") diagnose(e);
         else if (ITEMS.length) { renderMeta(); document.getElementById("asof").appendChild(el("span", "stale", "Refresh failed (" + e.message + "); showing the last data")); }
         else showSignin("Could not reach GitHub (" + e.message + "). Check the connection and try again.");
       });
+  }
+  function diagnose(e) {
+    var raw = " (GitHub: " + e.status + (e.gh ? " " + e.gh : "") + ")";
+    if (/rate limit/i.test(e.gh)) { showSignin("GitHub's rate limit was reached; try again in a few minutes." + raw); return; }
+    fetch("https://api.github.com/repos/" + REMOTE.repo, { cache: "no-cache", headers: { "Authorization": "Bearer " + token(), "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" } })
+      .then(function (r) {
+        if (r.ok) showSignin("The token can see " + REMOTE.repo + " but cannot read its files. Edit the token: Repository permissions → Contents → Read-only, then press Connect again." + raw);
+        else showSignin("GitHub does not show " + REMOTE.repo + " to this token. Edit the token: Repository access → Only select repositories → " + REMOTE.repo.split("/")[1] + " (the default “Public repositories” cannot see private ones), then press Connect again." + raw);
+      })
+      .catch(function () { showSignin("This token cannot read " + REMOTE.repo + "." + raw); });
   }
   if (EMBED) { setBundle(EMBED); showContent(); }
   else if (REMOTE) {
@@ -639,8 +651,8 @@ footer code { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-2)
     document.getElementById("signin-form").addEventListener("submit", function (e) {
       e.preventDefault();
       var v = document.getElementById("token").value.trim();
-      if (!v) return;
-      store(TOKEN_KEY, v); document.getElementById("token").value = ""; fetchRemote();
+      if (v) { store(TOKEN_KEY, v); document.getElementById("token").value = ""; }
+      if (token()) fetchRemote();
     });
     document.getElementById("refresh").addEventListener("click", fetchRemote);
     document.getElementById("signout").addEventListener("click", function () { forgetToken(); lastFetch = null; showSignin(); });
